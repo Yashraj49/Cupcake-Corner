@@ -1,0 +1,29 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+class User: ObservableObject, Codable {
+    @Published var name = "Paul Hudson"
+}
+
+The @Published property wrapper isn’t magic – the name property wrapper comes from the fact that our name property is automatically wrapped inside another type that adds some additional functionality. In the case of @Published that’s a struct called Published that can store any kind of value.
+
+Previously we looked at how we can write generic methods that work with any kind of value, and the Published struct takes that a step further: the whole type itself is generic, meaning that you can’t make an instance of Published all by itself, but instead make an instance of Published<String> – a publishable object that contains a string.
+
+If that sounds confusing, back up: it’s actually a fairly fundamental principle of Swift, and one you’ve been working with for some time. Think about it – we can’t say var names: Set, can we? Swift doesn’t allow it; Swift wants to know what’s in the set. This is because Set is also a generic type: you must make an instance of Set<String>. The same is also true of arrays and dictionaries: we always make them have something specific inside.
+
+
+ so let’s just dive in with the first one: telling Swift which properties should be loaded and saved. This is done using an enum that conforms to a special protocol called CodingKey, which means that every case in our enum is the name of a property we want to load and save. This enum is conventionally called CodingKeys, with an S on the end, but you can call it something else if you want.
+ 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+First, this initializer is handed an instance of a new type called Decoder. This contains all our data, but it’s down to us to figure out how to read it.
+
+Second, anyone who subclasses our User class must override this initializer with a custom implementation to make sure they add their own values. We mark this using the required keyword: required init. An alternative is to mark this class as final so that subclassing isn’t allowed, in which case we’d write final class User and drop the required keyword entirely.
+
+Third, inside the method we ask our Decoder instance for a container matching all the coding keys we already set in our CodingKey struct by writing decoder.container(keyedBy: CodingKeys.self). This means “this data should have a container where the keys match whatever cases we have in our CodingKeys enum. This is a throwing call, because it’s possible those keys don’t exist.
+
+Finally, we can read values directly from that container by referencing cases in our enum – container.decode(String.self, forKey: .name). This provides really strong safety in two ways: we’re making it clear we expect to read a string, so if name gets changed to an integer the code will stop compiling; and we’re also using a case in our CodingKeys enum rather than a string, so there’s no chance of typos.
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
