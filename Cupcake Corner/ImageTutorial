@@ -1,0 +1,184 @@
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+To adjust our image, you need to use a more advanced form of AsyncImage that passes us the final image view once it’s ready, which we can then customize as needed. As a bonus, this also gives us a second closure to customize the placeholder as needed.
+
+For example, we could make the finished image view be both resizable and scaled to fit, and use Color.red as the placeholder so it’s more obvious while you’re learning.
+
+AsyncImage(url: URL(string: "https://hws.dev/img/logo.png")) { image in
+    image
+        .resizable()
+        .scaledToFit()
+} placeholder: {
+    Color.red
+}
+.frame(width: 200, height: 200)
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+If you want complete control over your remote image, there’s a third way of creating AsyncImage that tells us whether the image was loaded, hit an error, or hasn’t finished yet. This is particularly useful for times when you want to show a dedicated view when the download fails – if the URL doesn’t exist, or the user was offline, etc.
+
+Here’s how that looks:
+
+AsyncImage(url: URL(string: "https://hws.dev/img/bad.png")) { phase in
+    if let image = phase.image {
+        image
+            .resizable()
+            .scaledToFit()
+    } else if phase.error != nil {
+        Text("There was an error loading the image.")
+    } else {
+        ProgressView()
+    }
+}
+.frame(width: 200, height: 200)
+
+So, that will show our image if it can, an error message if the download failed for any reason, or a spinning activity indicator while the download is still in progress.
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////   FORMS    ////////////////////////////////////////////////////////////////////////////////////////////
+
+
+SwiftUI’s Form view lets us store user input in a really fast and convenient way, but sometimes it’s important to go a step further – to check that input to make sure it’s valid before we proceed.
+
+Well, we have a modifier just for that purpose: disabled(). This takes a condition to check, and if the condition is true then whatever it’s attached to won’t respond to user input – buttons can’t be tapped, sliders can’t be dragged, and so on. You can use simple properties here, but any condition will do: reading a computed property, calling a method, and so on,
+
+
+
+
+we don’t want users to create an account unless both fields have been filled in, so we can disable the form section containing the Create Account button by adding the disabled() modifier like this
+
+
+Section {
+    Button("Create account") {
+        print("Creating account…")
+    }
+}
+.disabled(username.isEmpty || email.isEmpty)
+
+
+
+
+
+    var disableform : Bool {
+        username.count < 5 || email.count < 5
+    }
+    
+    
+                .disabled(disableform)
+
+
+////////////////////////////////////////////////////////////////       Start of Proj        /////////////////////////////////////////////////////////////////
+
+Here we’re going to take a different solution: we’re going to have a single class that stores all our data, which will be passed from screen to screen. This means all screens in our app share the same data, which will work really well as you’ll see.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+The second section of our form will hold three toggle switches bound to specialRequestEnabled, extraFrosting, and addSprinkles respectively. However, the second and third switches should only be visible when the first one is enabled, so we’ll wrap then in a condition
+
+there’s another bug, and this time it’s one of our own making: if we enable special requests then enable one or both of “extra frosting” and “extra sprinkles”, then disable the special requests, our previous special request selection stays active. This means if we re-enable special requests, the previous special requests are still active.    However, a better idea – a safer idea – is to make sure that both extraFrosting and addSprinkles are reset to false when specialRequestEnabled is set to false.
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Our third section is the easiest, because it’s just going to be a NavigationLink pointing to the next screen
+
+give it an order observed object property like this:
+
+struct AddressView_Previews: PreviewProvider {
+    static var previews: some View {
+        AddressView(order: Order())
+    }
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Now that AddressView works, it’s time to stop the user progressing to the checkout unless some condition is satisfied. What condition? Well, that’s down to us to decide. Although we could write length checks for each of our four text fields, this often trips people up – some names are only four or five letters, so if you try to add length validation you might accidentally exclude people.
+
+So, instead we’re just going to check that the name, streetAddress, city, and zip properties of our order aren’t empty. I prefer adding this kind of complex check inside my data, which means you need to add a new computed property to Order
+
+var hasValidAddress: Bool {
+    if name.isEmpty || streetAddress.isEmpty || city.isEmpty || zip.isEmpty {
+        return false
+    }
+
+    return true
+}
+
+We can now use that condition in conjunction with SwiftUI’s disabled() modifier – attach that to any view along with a condition to check, and the view will stop responding to user interaction if the condition is true.
+
+In our case, the condition we want to check is the computed property we just wrote, hasValidAddress. If that is false, then the form section containing our NavigationLink ought to be disabled, because we need users to fill in their delivery details first.
+
+So, add this modifier to the end of the second section in AddressView:
+
+.disabled(order.hasValidAddress == false)
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+IMP !!
+
+We’ve organized our code so that we have one Order object that gets shared between all our screens, which has the advantage that we can move back and forward between those screens without losing data. However, this approach comes with a cost: we’ve had to use the @Published property wrapper for the properties in the class, and as soon we did that we lost support for automatic Codable conformance.
+
+
+The fix here is to add Codable conformance by hand, which means telling Swift what should be encoded, how it should be encoded, and also how it should be decoded – converted back from JSON to Swift data.
+
+That first step means adding an enum that conforms to CodingKey, listing all the properties we want to save. In our Order class that’s almost everything – the only thing we don’t need is the static types property.
+
+So, add this enum to Order now:
+
+enum CodingKeys: CodingKey {
+    case type, quantity, extraFrosting, addSprinkles, name, streetAddress, city, zip
+}
+
+
+The second step requires us to write an encode(to:) method that creates a container using the coding keys enum we just created, then writes out all the properties attached to their respective key. This is just a matter of calling encode(_:forKey:) repeatedly, each time passing in a different property and coding key.
+
+
+func encode ().....
+
+Our final step is to implement a required initializer to decode an instance of Order from some archived data. This is pretty much the reverse of encoding, and even benefits from the same throws functionality:
+
+required init(from decoder: Decoder) throws ....
+
+That makes our code fully Codable compliant: we’ve effectively bypassed the @Published property wrapper, reading and writing the values directly.
+
+However, it doesn’t make our code compile – in fact, we now get a completely different error back in ContentView.swift.
+
+The problem now is that we just created a custom initializer for our Order class, init(from:), and Swift wants us to use it everywhere – even in places where we just want to create a new empty order because the app just started.
+
+Fortunately, Swift lets us add multiple initializers to a class, so that we can create it in any number of different ways. In this situation, that means we need to write a new initializer that can create an order without any data whatsoever – it will rely entirely on the default property values we assigned.
+
+So, add this new initializer to Order now:
+
+init() { }
+
+Now our code is back to compiling, and our Codable conformance is complete. This means we’re ready for the final step: sending and receiving Order objects over the network.
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+iOS comes with some fantastic functionality for handling networking, and in particular the URLSession class makes it surprisingly easy to send and receive data. If we combine that with Codable to convert Swift objects to and from JSON, we can use a new URLRequest struct to configure exactly how data should be sent, accomplishing great things in about 20 lines of code.
+
+First, let’s create a method we can call from our Place Order button – add this to CheckoutView:
+
+func placeOrder() async {
+}
+
+
+That code won’t work, and Swift will be fairly clear why: it calls an asynchronous function from a function that does not support concurrency. What it means is that our button expects to be able to run its action immediately, and doesn’t understand how to wait for something – even if we wrote await placeOrder() it still wouldn’t work, because the button doesn’t want to wait.
+
+Previously I mentioned that onAppear() didn’t work with these asynchronous functions, and we needed to use the task() modifier instead. That isn’t an option here because we’re executing an action rather than just attaching modifiers, but Swift provides an alternative: we can create a new task out of thin air, and just like the task() modifier this will run any kind of asynchronous code we want.
+
+In fact, all it takes is placing our await call inside a task, like thi

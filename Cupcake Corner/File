@@ -27,3 +27,59 @@ Finally, we can read values directly from that container by referencing cases in
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+oing this means you need to meet two important Swift keywords: async and await. You see, any iPhone capable of running SwiftUI can perform billions of operations every second – it’s so fast that it completes most work before we even realized it started it. On the flip side, networking – downloading data from the internet – might take several hundreds milliseconds or more to come, which is extremely slow for a computer that’s used to doing literally a billion other things in that time.
+
+Rather than forcing our entire progress to stop while the networking happens, Swift gives us the ability to say “this work will take some time, so please wait for it to complete while the rest of the app carries on running as usual.”
+
+This functionality – this ability to leave some code running while our main app code carries on working – is called an asynchronous function. A synchronous function is one that runs fully before returning a value as needed, but an asynchronous function is one that is able to go to sleep for a while, so that it can wait for some other work to complete before continuing. In our case, that means going to sleep while our networking code happens, so that the rest of our app doesn’t freeze up for several seconds.
+
+
+To make this easier to understand, let’s write it in a few stages. First, here’s the basic method stub – please add this to the ContentView struct:
+
+func loadData() async {
+
+}
+
+Notice the new async keyword in there – we’re telling Swift this function might want to go to sleep in order to complete its work.
+
+.task {
+    await loadData()
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Step 2 is to fetch the data from that URL, which is where our sleep is likely to happen. I say “likely” because it might not – iOS will do a little caching of data, so if the URL is fetched twice back to back then the data will get sent back immediately rather than triggering a sleep.
+
+Regardless, a sleep is possible here, and every time a sleep is possible we need to use the await keyword with the code we want to run. Just as importantly, an error might also be thrown here – maybe the user isn’t currently connected to the internet, for example.
+
+So, we need to use both try and await at the same time. Please add this code directly after the previous code:
+
+do {
+    let (data, _) = try await URLSession.shared.data(from: url)
+
+    // more code to come
+} catch {
+    print("Invalid data")
+}
+
+
+ Our work is being done by the data(from:) method, which takes a URL and returns the Data object at that URL. This method belongs to the URLSession class, which you can create and configure by hand if you want, but you can also use a shared instance that comes with sensible defaults.
+
+The return value from data(from:) is a tuple containing the data at the URL and some metadata describing how the request went. We don’t use the metadata, but we do want the URL’s data, hence the underscore – we create a new local constant for the data, and toss the metadata away.
+
+When using both try and await at the same time, we must write try await – using await try is not allowed. There’s no special reason for this, but they had to pick one so they went with the one that reads more naturally.
+
+
+So, if our download succeeds our data constant will be set to whatever data was sent back from the URL, but if it fails for any reason our code prints “Invalid data” and does nothing else.
+
+The last part of this method is to convert the Data object into a Response object using JSONDecoder, then assign the array inside to our results property. This is exactly what we’ve used before, so this shouldn’t be a surprise
+
+
+if let decodedResponse = try? JSONDecoder().decode(Response.self, from: data) {
+    results = decodedResponse.results
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
