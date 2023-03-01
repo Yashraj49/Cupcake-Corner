@@ -86,7 +86,9 @@ struct CheckoutView: View {
             
         } catch {
             print("Checkout failed.")
+                
         }
+            
     }
 }
 

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
- //MARK: -By conforming to the ObservableObject protocol, you can define a data model that can be observed by other views, view models, or controllers in your app  , @Published property wrapper applied to any properties that need to be observed, which will notify the observers whenever the property value changes.
+ //MARK: - By conforming to the ObservableObject protocol, you can define a data model that can be observed by other views, view models, or controllers in your app  , @Published property wrapper applied to any properties that need to be observed, which will notify the observers whenever the property value changes.
 
 
 class Order : ObservableObject  , Codable {
@@ -39,8 +39,18 @@ class Order : ObservableObject  , Codable {
             return false
         }
         
+        if name.isAllWhiteSpaces || StreetAddress.isAllWhiteSpaces || city.isAllWhiteSpaces || zip.isAllWhiteSpaces {
+                    return false
+                }
+        
         return true
     }
+    
+    
+    
+    
+    
+    
     
     var cost : Double {
         // $2 per cake
@@ -103,3 +113,14 @@ class Order : ObservableObject  , Codable {
     
     
 }
+
+fileprivate extension String {
+    
+    
+    var isAllWhiteSpaces : Bool {
+        guard !self.isEmpty else {return false}
+        return self.drop(while: {$0 == " "}).isEmpty
+    }
+}
+
+ //MARK: -  in the isAllWhiteSpaces computed property extension, the guard statement checks if the string is empty, and if so, immediately returns false. This is because an empty string cannot be considered to be made up of only whitespace characters. The guard statement helps to ensure that the function is working with valid input and avoids potential runtime errors that could occur if the input was invalid.

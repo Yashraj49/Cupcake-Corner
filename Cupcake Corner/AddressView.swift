@@ -28,6 +28,7 @@ struct AddressView: View {
                 }
             }
             .disabled(order.hasValidAddress == false)
+            
         }
         .navigationTitle("Delivery Details")
         .navigationBarTitleDisplayMode(.inline)
