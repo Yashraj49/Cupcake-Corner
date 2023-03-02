@@ -19,10 +19,10 @@ struct ContentView: View {
                             Text(Order.types[$0])
                         }
                     }
-
+                    
                     Stepper("Number of cakes: \(order.quantity)", value: $order.quantity, in: 3...20)
                 }
-
+                
                 Section {
                     Toggle("Any special requests?", isOn: $order.specialRequestEnabled.animation())
 
@@ -31,19 +31,21 @@ struct ContentView: View {
                         Toggle("Add extra sprinkles", isOn: $order.addSprinkles)
                     }
                 }
-
+                
                 Section {
-                    NavigationLink {
-                        AddressView(order: order)
-                    } label: {
-                        Text("Delivery details")
-                    }
+                    NavigationLink(
+                        destination: AddressView(order: order),
+                        label: {
+                            Text("Delivery details")
+                        }
+                    )
                 }
             }
             .navigationTitle("Cupcake Corner")
         }
     }
 }
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
