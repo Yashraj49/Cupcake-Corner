@@ -45,13 +45,6 @@ class Order : ObservableObject  , Codable {
         
         return true
     }
-    
-    
-    
-    
-    
-    
-    
     var cost : Double {
         // $2 per cake
 

@@ -12,39 +12,53 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            Form {
-                Section {
-                    Picker("Select your cake type", selection: $order.type) {
-                        ForEach(Order.types.indices) {
-                            Text(Order.types[$0])
-                        }
-                    }
-                    
-                    Stepper("Number of cakes: \(order.quantity)", value: $order.quantity, in: 3...20)
-                }
-                
-                Section {
-                    Toggle("Any special requests?", isOn: $order.specialRequestEnabled.animation())
-
-                    if order.specialRequestEnabled {
-                        Toggle("Add extra frosting", isOn: $order.extraFrosting)
-                        Toggle("Add extra sprinkles", isOn: $order.addSprinkles)
-                    }
-                }
-                
-                Section {
-                    NavigationLink(
-                        destination: AddressView(order: order),
-                        label: {
-                            Text("Delivery details")
-                        }
-                    )
+            orderForm
+                .navigationTitle("Cupcake Corner")
+        }
+    }
+    
+    private var orderForm: some View {
+        Form {
+            cakeTypeSection
+            specialRequestSection
+            deliveryDetailsSection
+        }
+    }
+    
+    private var cakeTypeSection: some View {
+        Section {
+            Picker("Select your cake type", selection: $order.type) {
+                ForEach(Order.types.indices) {
+                    Text(Order.types[$0])
                 }
             }
-            .navigationTitle("Cupcake Corner")
+            Stepper("Number of cakes: \(order.quantity)", value: $order.quantity, in: 3...20)
+        }
+    }
+    
+    private var specialRequestSection: some View {
+        Section {
+            Toggle("Any special requests?", isOn: $order.specialRequestEnabled.animation())
+
+            if order.specialRequestEnabled {
+                Toggle("Add extra frosting", isOn: $order.extraFrosting)
+                Toggle("Add extra sprinkles", isOn: $order.addSprinkles)
+            }
+        }
+    }
+    
+    private var deliveryDetailsSection: some View {
+        Section {
+            NavigationLink(
+                destination: AddressView(order: order),
+                label: {
+                    Text("Delivery details")
+                }
+            )
         }
     }
 }
+
 
 
 struct ContentView_Previews: PreviewProvider {
