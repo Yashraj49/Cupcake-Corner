@@ -1,0 +1,6 @@
+Civo 
+Apple 
+Google 
+Netflix
+Mergify 
+Goldman Sachs
